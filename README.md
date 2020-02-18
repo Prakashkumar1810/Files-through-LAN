@@ -1,4 +1,4 @@
-# files through LAN
+# Files through LAN
 
 Script to send file to systems in a LAN network using ssh-server.
 
