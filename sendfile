@@ -1,0 +1,94 @@
+#!/bin/bash
+
+if [ ! "$1" ]
+then
+	echo "Usage: $0 -ips|-clean|filename [ips...]"
+	exit 1
+fi
+
+if [ $1 == "-clean" ]
+then
+	rm ~/ipsdir/ips.*
+	exit 0
+fi
+
+if [ $1 == "-ips" ]
+then
+	if [ ! -d ~/ipsdir ]
+	then
+		mkdir ~/ipsdir
+	fi
+	touch ~/ipsdir/ips.txt
+	mv ~/ipsdir/ips.txt ~/ipsdir/ips.`date +%s`.txt
+	#change wlan0 to eth0 for wired LAN connections
+	sudo arp-scan --interface=wlan0 --localnet | tee .tmp
+	grep -o "[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*" .tmp > ~/ipsdir/ips.txt
+	rm .tmp
+	exit 0
+fi
+
+if [ $1 == "-install" ]
+then
+	if [ -f "/usr/bin/sendfile" ]
+	then
+		echo "Already installed"
+		exit 0
+	fi
+	cp $0 /usr/bin/sendfile
+	echo "Installed successfully"
+	exit 0
+fi
+
+if [ $1 == "-uninstall" ]
+then
+	if [ ! -f "/usr/bin/sendfile" ]
+	then
+		echo "Script not installed"
+		exit 0
+	fi
+	rm /usr/bin/sendfile
+	echo "Uninstalled successfully"
+	exit 0
+fi
+
+if [ -f "$1" ]
+then
+	filename=$1
+else
+	echo "$1 not present"
+	echo "Usage: $0 -ips|-clean|filename [ips...]"
+	exit 1
+fi
+
+read -p "Enter target Username: " username
+read -p "Enter target Password: " password
+
+if [ "$2" ]
+then
+	for ip in "${@:2}"
+	do
+		echo "Sending to $ip..."
+		sshpass -p $password scp -o StrictHostKeyChecking=no -o ConnectTimeout=1 -o ConnectionAttempts=1 $filename $username@$ip:/home/$username/Desktop
+		echo "..."
+	done
+else
+	if [ ! -f ~/ipsdir/ips.txt ]
+	then
+		echo -e "~/ipsdir/ips.txt file doesn't exist.\nCreate one with command $0 -ips"
+		exit 1
+	fi
+
+	for ip in $(cat ~/ipsdir/ips.txt | cut -d " " -f 1)
+	do
+		echo "Sending to $ip..."
+		sshpass -p $password scp -o StrictHostKeyChecking=no -o ConnectTimeout=1 -o ConnectionAttempts=1 $filename $username@$ip:/home/$username/Desktop
+		echo "..."
+
+	done
+fi
+
+
+
+
+
+
